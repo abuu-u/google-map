@@ -1,44 +1,51 @@
 import { useState } from "react";
-import { Position } from "./init-map";
 import Map from "./map";
 
 function App() {
-  const [origin, setOrigin] = useState<Position>();
-
-  const handleClick = () =>
-    setOrigin({
-      lat: 41.2995,
-      lng: 69.2401,
-    });
+  const [select, setSelect] = useState<"origin" | "destination">();
 
   return (
-    <div
-      style={{
-        width: "100vw",
-        height: "100vh",
-        position: "relative",
-      }}
-    >
-      <button
-        style={{
-          position: "absolute",
-          bottom: "10px",
-          right: "10px",
-          zIndex: "100",
-        }}
-        onClick={handleClick}
-      >
-        set
-      </button>
+    <div className="h-screen w-screen relative grid grid-rows-[auto,1fr]">
+      <div className="grid grid-cols-2 gap-5 p-3">
+        <div className="grid grid-cols-[1fr,auto] border rounded-xl border-black">
+          <input
+            type="text"
+            className="border-none bg-transparent p-3 outline-none "
+            placeholder="origin"
+          />
+          <button
+            className="p-3 border-l border-black"
+            onClick={() => setSelect("origin")}
+          >
+            map
+          </button>
+        </div>
 
-      <Map
-        style={{
-          width: "100%",
-          height: "100%",
-        }}
-        origin={origin}
-        onChange={(pos) => console.log(pos)}
-      />
+        <div className="grid grid-cols-[1fr,auto] border rounded-xl border-black">
+          <input
+            type="text"
+            className="border-none bg-transparent p-3 outline-none "
+            placeholder="destination"
+          />
+          <button
+            className="p-3 border-l border-black"
+            onClick={() => setSelect("destination")}
+          >
+            map
+          </button>
+        </div>
+      </div>
+
+      <Map onFinish={(pos) => console.log(pos)} select={select} />
+
+      {select !== undefined && (
+        <button
+          className="absolute p-3 rounded-xl border border-black bg-white bottom-5 left-5 right-5"
+          onClick={() => setSelect(undefined)}
+        >
+          done
+        </button>
+      )}
     </div>
   );
 }

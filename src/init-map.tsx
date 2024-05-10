@@ -21,9 +21,37 @@ export type OnChange = (data: {
   destination?: Position;
 }) => void;
 
+export type OnFinish = (data: {
+  origin: Position;
+  destination: Position;
+}) => void;
+
 export const initMap = async (el: HTMLElement) => {
-  const { Map } = await loader.importLibrary("maps");
+  const cords: {
+    origin?: Position;
+    destination?: Position;
+  } = {};
+
+  const marker: {
+    origin?: google.maps.marker.AdvancedMarkerElement;
+    destination?: google.maps.marker.AdvancedMarkerElement;
+  } = {};
+
+  let moveListener: google.maps.MapsEventListener;
+
+  let directionBounds: google.maps.LatLngBounds | undefined;
+
   let onChange: OnChange;
+  const setOnChange = (fn: OnChange) => {
+    onChange = fn;
+  };
+
+  let onFinish: OnFinish;
+  const setOnFinish = (fn: OnFinish) => {
+    onFinish = fn;
+  };
+
+  const { Map } = await loader.importLibrary("maps");
 
   const map = new Map(el, {
     center,
@@ -39,6 +67,8 @@ export const initMap = async (el: HTMLElement) => {
   const renderer = new DirectionsRenderer({
     draggable: true,
     map,
+    suppressMarkers: true,
+    preserveViewport: true,
   });
 
   renderer.addListener("directions_changed", () => {
@@ -62,12 +92,6 @@ export const initMap = async (el: HTMLElement) => {
 
   const { AdvancedMarkerElement } = await loader.importLibrary("marker");
 
-  let marker: google.maps.marker.AdvancedMarkerElement;
-  const cords: {
-    origin?: Position;
-    destination?: Position;
-  } = {};
-
   const drawDirection = () => {
     if (cords.origin && cords.destination) {
       services.route(
@@ -78,39 +102,15 @@ export const initMap = async (el: HTMLElement) => {
         },
         (res, status) => {
           if (status === google.maps.DirectionsStatus.OK) {
-            marker.map = null;
             renderer.setDirections(res);
+            directionBounds = res?.routes[0].bounds;
           }
         }
       );
-    } else {
-      marker = new AdvancedMarkerElement({
-        position: cords.origin,
-        map,
-      });
     }
 
     onChange?.(cords);
   };
-
-  const handleClick = (e: google.maps.MapMouseEvent) => {
-    if (cords.origin && cords.destination) return cords;
-
-    const currCord = {
-      lat: e.latLng?.lat() ?? 0,
-      lng: e.latLng?.lng() ?? 0,
-    };
-
-    if (cords.origin) {
-      cords.destination = currCord;
-    } else {
-      cords.origin = currCord;
-    }
-
-    drawDirection();
-  };
-
-  map.addListener("click", handleClick);
 
   const setOrigin = (origin: Position) => {
     cords.origin = origin;
@@ -122,13 +122,72 @@ export const initMap = async (el: HTMLElement) => {
     drawDirection();
   };
 
-  const setOnChange = (fn: OnChange) => {
-    onChange = fn;
+  const setMarker = (type: "origin" | "destination") => {
+    const position = {
+      lat: map.getCenter()?.lat() ?? 0,
+      lng: map.getCenter()?.lng() ?? 0,
+    };
+
+    if (marker[type]) {
+      marker[type]!.position = position;
+    } else {
+      marker[type] = new AdvancedMarkerElement({
+        position: position,
+        map,
+      });
+    }
+
+    if (type === "origin") {
+      setOrigin(position);
+    } else if (type === "destination") {
+      setDestination(position);
+    }
+  };
+
+  const select = (type?: "origin" | "destination") => {
+    if (!type) {
+      if (directionBounds) map.fitBounds(directionBounds);
+
+      if (cords.destination && cords.origin) {
+        onFinish({
+          origin: cords.origin,
+          destination: cords.destination,
+        });
+      }
+
+      moveListener?.remove();
+
+      return;
+    }
+
+    const mapCenter = map.getCenter();
+    const latMarker = marker[type]?.position?.lat;
+    const lngMarker = marker[type]?.position?.lng;
+    const lat =
+      typeof latMarker === "function"
+        ? latMarker()
+        : latMarker ?? mapCenter?.lat() ?? 0;
+    const lng =
+      typeof lngMarker === "function"
+        ? lngMarker()
+        : lngMarker ?? mapCenter?.lng() ?? 0;
+
+    map.setCenter({ lat, lng });
+
+    setMarker(type);
+
+    const handleMove = () => {
+      setMarker(type);
+    };
+
+    moveListener = map.addListener("drag", handleMove);
   };
 
   return {
     setOrigin,
     setDestination,
+    select,
     setOnChange,
+    setOnFinish,
   };
 };
