@@ -1,32 +1,44 @@
-import { useEffect, useRef } from "react";
-import { initMap } from "./init-map";
+import { useState } from "react";
+import { Position } from "./init-map";
+import Map from "./map";
 
 function App() {
-  const ref = useRef<HTMLDivElement>(null);
+  const [origin, setOrigin] = useState<Position>();
 
-  useEffect(() => {
-    if (!ref.current) return;
-
-    initMap(ref.current, (data) => console.log(data)).then(
-      ({ setOrigin, setDestination }) => {
-        setTimeout(() => {
-          setOrigin({
-            lat: 41.2995,
-            lng: 69.2401,
-          });
-        }, 5000);
-      }
-    );
-  }, []);
+  const handleClick = () =>
+    setOrigin({
+      lat: 41.2995,
+      lng: 69.2401,
+    });
 
   return (
     <div
       style={{
         width: "100vw",
         height: "100vh",
+        position: "relative",
       }}
-      ref={ref}
-    ></div>
+    >
+      <button
+        style={{
+          position: "absolute",
+          bottom: "10px",
+          right: "10px",
+          zIndex: "100",
+        }}
+        onClick={handleClick}
+      >
+        set
+      </button>
+
+      <Map
+        style={{
+          width: "100%",
+          height: "100%",
+        }}
+        origin={origin}
+      />
+    </div>
   );
 }
 
