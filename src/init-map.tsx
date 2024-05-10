@@ -16,11 +16,14 @@ export type Position = {
   lng: number;
 };
 
-export const initMap = async (
-  el: HTMLElement,
-  onChange?: (data: { origin?: Position; destination?: Position }) => void
-) => {
+export type OnChange = (data: {
+  origin?: Position;
+  destination?: Position;
+}) => void;
+
+export const initMap = async (el: HTMLElement) => {
   const { Map } = await loader.importLibrary("maps");
+  let onChange: OnChange;
 
   const map = new Map(el, {
     center,
@@ -115,8 +118,13 @@ export const initMap = async (
     drawDirection();
   };
 
+  const setOnChange = (fn: OnChange) => {
+    onChange = fn;
+  };
+
   return {
     setOrigin,
     setDestination,
+    setOnChange,
   };
 };

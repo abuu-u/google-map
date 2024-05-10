@@ -37,6 +37,7 @@ function App() {
           height: "100%",
         }}
         origin={origin}
+        onChange={(pos) => console.log(pos)}
       />
     </div>
   );

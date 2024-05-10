@@ -1,31 +1,43 @@
 import { CSSProperties, FC, useEffect, useRef, useState } from "react";
-import { Position, initMap } from "./init-map";
+import { OnChange, Position, initMap } from "./init-map";
 
 interface Properties {
   style?: CSSProperties;
   className?: string;
   origin?: Position;
   destination?: Position;
+  onChange?: OnChange;
 }
 
-const Map: FC<Properties> = ({ style, className, origin, destination }) => {
+const Map: FC<Properties> = ({
+  style,
+  className,
+  origin,
+  destination,
+  onChange,
+}) => {
   const ref = useRef<HTMLDivElement>(null);
   const setOriginRef = useRef<(pos: Position) => void>();
   const setDestinationRef = useRef<(pos: Position) => void>();
+  const setOnChangeRef = useRef<(fn: OnChange) => void>();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!ref.current) return;
 
-    initMap(ref.current, (data) => console.log(data)).then(
-      ({ setOrigin, setDestination }) => {
-        setOriginRef.current = setOrigin;
-        setDestinationRef.current = setDestination;
+    initMap(ref.current).then(({ setOrigin, setDestination, setOnChange }) => {
+      setOriginRef.current = setOrigin;
+      setDestinationRef.current = setDestination;
+      setOnChangeRef.current = setOnChange;
 
-        setReady(true);
-      }
-    );
+      setReady(true);
+    });
   }, []);
+
+  useEffect(() => {
+    if (!ready || !onChange) return;
+    setOnChangeRef.current?.(onChange);
+  });
 
   useEffect(() => {
     if (!ready) return;
