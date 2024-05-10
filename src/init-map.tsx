@@ -63,14 +63,17 @@ export const initMap = async (el: HTMLElement) => {
   const { AdvancedMarkerElement } = await loader.importLibrary("marker");
 
   let marker: google.maps.marker.AdvancedMarkerElement;
-  let cords: { lat: number; lng: number }[] = [];
+  const cords: {
+    origin?: Position;
+    destination?: Position;
+  } = {};
 
   const drawDirection = () => {
-    if (cords.length === 2) {
+    if (cords.origin && cords.destination) {
       services.route(
         {
-          origin: cords[0],
-          destination: cords[1],
+          origin: cords.origin,
+          destination: cords.destination,
           // @ts-expect-error dumb enum
           travelMode: "DRIVING",
         },
@@ -81,41 +84,42 @@ export const initMap = async (el: HTMLElement) => {
           }
         }
       );
-
-      onChange?.({ origin: cords[0], destination: cords[1] });
     } else {
       marker = new AdvancedMarkerElement({
-        position: cords[0],
+        position: cords.origin,
         map,
       });
-
-      onChange?.({ origin: cords[0] });
     }
+
+    onChange?.(cords);
   };
 
   const handleClick = (e: google.maps.MapMouseEvent) => {
-    if (cords.length === 2) return cords;
+    if (cords.origin && cords.destination) return cords;
 
-    const firstCord = cords[0];
     const currCord = {
       lat: e.latLng?.lat() ?? 0,
       lng: e.latLng?.lng() ?? 0,
     };
 
-    cords = firstCord ? [firstCord, currCord] : [currCord];
+    if (cords.origin) {
+      cords.destination = currCord;
+    } else {
+      cords.origin = currCord;
+    }
 
     drawDirection();
   };
 
   map.addListener("click", handleClick);
 
-  const setOrigin = ({ lat, lng }: Position) => {
-    cords[0] = { lat, lng };
+  const setOrigin = (origin: Position) => {
+    cords.origin = origin;
     drawDirection();
   };
 
-  const setDestination = ({ lat, lng }: Position) => {
-    cords[1] = { lat, lng };
+  const setDestination = (destination: Position) => {
+    cords.destination = destination;
     drawDirection();
   };
 
