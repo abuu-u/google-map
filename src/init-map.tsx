@@ -1,6 +1,6 @@
 import { Loader } from "@googlemaps/js-api-loader";
 
-const API_KEY = "AIzaSyD07A5e4aHqhRZYh0Z-YFb_hwjp7D26CCo";
+const API_KEY = "";
 
 const center = {
   lat: 41.2995,
@@ -11,7 +11,15 @@ const loader = new Loader({
   apiKey: API_KEY,
 });
 
-export const initMap = async (el: HTMLElement) => {
+export type Position = {
+  lat: number;
+  lng: number;
+};
+
+export const initMap = async (
+  el: HTMLElement,
+  onChange?: (data: { origin?: Position; destination?: Position }) => void
+) => {
   const { Map } = await loader.importLibrary("maps");
 
   const map = new Map(el, {
@@ -30,10 +38,56 @@ export const initMap = async (el: HTMLElement) => {
     map,
   });
 
+  renderer.addListener("directions_changed", () => {
+    const directions = renderer.getDirections();
+
+    if (!directions || !onChange) return;
+
+    const { start_location, end_location } = directions.routes[0].legs[0];
+
+    onChange({
+      origin: {
+        lat: start_location.lat(),
+        lng: start_location.lng(),
+      },
+      destination: {
+        lat: end_location.lat(),
+        lng: end_location.lng(),
+      },
+    });
+  });
+
   const { AdvancedMarkerElement } = await loader.importLibrary("marker");
 
   let marker: google.maps.marker.AdvancedMarkerElement;
   let cords: { lat: number; lng: number }[] = [];
+
+  const drawDirection = () => {
+    if (cords.length === 2) {
+      services.route(
+        {
+          origin: cords[0],
+          destination: cords[1],
+          travelMode: window.google.maps.TravelMode.DRIVING,
+        },
+        (res, status) => {
+          if (status === window.google.maps.DirectionsStatus.OK) {
+            marker.map = null;
+            renderer.setDirections(res);
+          }
+        }
+      );
+
+      onChange?.({ origin: cords[0], destination: cords[1] });
+    } else {
+      marker = new AdvancedMarkerElement({
+        position: cords[0],
+        map,
+      });
+
+      onChange?.({ origin: cords[0] });
+    }
+  };
 
   const handleClick = (e: google.maps.MapMouseEvent) => {
     if (cords.length === 2) return cords;
@@ -44,29 +98,25 @@ export const initMap = async (el: HTMLElement) => {
       lng: e.latLng?.lng() ?? 0,
     };
 
-    if (firstCord) {
-      services.route(
-        {
-          origin: firstCord,
-          destination: currCord,
-          travelMode: window.google.maps.TravelMode.DRIVING,
-        },
-        (res, status) => {
-          if (status === window.google.maps.DirectionsStatus.OK) {
-            marker.map = null;
-            renderer.setDirections(res);
-          }
-        }
-      );
-    } else {
-      marker = new AdvancedMarkerElement({
-        position: currCord,
-        map,
-      });
-    }
-
     cords = firstCord ? [firstCord, currCord] : [currCord];
+
+    drawDirection();
   };
 
   map.addListener("click", handleClick);
+
+  const setOrigin = ({ lat, lng }: Position) => {
+    cords[0] = { lat, lng };
+    drawDirection();
+  };
+
+  const setDestination = ({ lat, lng }: Position) => {
+    cords[1] = { lat, lng };
+    drawDirection();
+  };
+
+  return {
+    setOrigin,
+    setDestination,
+  };
 };

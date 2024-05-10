@@ -7,7 +7,16 @@ function App() {
   useEffect(() => {
     if (!ref.current) return;
 
-    initMap(ref.current);
+    initMap(ref.current, (data) => console.log(data)).then(
+      ({ setOrigin, setDestination }) => {
+        setTimeout(() => {
+          setOrigin({
+            lat: 41.2995,
+            lng: 69.2401,
+          });
+        }, 5000);
+      }
+    );
   }, []);
 
   return (
