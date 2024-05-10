@@ -37,7 +37,7 @@ const Map: FC<Properties> = ({
   useEffect(() => {
     if (!ready || !onChange) return;
     setOnChangeRef.current?.(onChange);
-  });
+  }, [onChange, ready]);
 
   useEffect(() => {
     if (!ready) return;
