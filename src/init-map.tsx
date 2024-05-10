@@ -74,11 +74,10 @@ export const initMap = async (el: HTMLElement) => {
         {
           origin: cords.origin,
           destination: cords.destination,
-          // @ts-expect-error dumb enum
-          travelMode: "DRIVING",
+          travelMode: google.maps.TravelMode.DRIVING,
         },
         (res, status) => {
-          if (status === "OK") {
+          if (status === google.maps.DirectionsStatus.OK) {
             marker.map = null;
             renderer.setDirections(res);
           }
