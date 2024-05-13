@@ -1,6 +1,6 @@
 import { Loader } from "@googlemaps/js-api-loader";
 
-const API_KEY = import.meta.env.VITE_API_KEY;
+export const API_KEY = import.meta.env.VITE_API_KEY;
 
 const center = {
   lat: 41.2995,
@@ -57,6 +57,7 @@ export const initMap = async (el: HTMLElement) => {
     center,
     zoom: 12,
     mapId: "DEMO_MAP_ID",
+    streetViewControl: false,
   });
 
   const { DirectionsRenderer, DirectionsService } = await loader.importLibrary(
@@ -65,29 +66,9 @@ export const initMap = async (el: HTMLElement) => {
 
   const services = new DirectionsService();
   const renderer = new DirectionsRenderer({
-    draggable: true,
     map,
     suppressMarkers: true,
     preserveViewport: true,
-  });
-
-  renderer.addListener("directions_changed", () => {
-    const directions = renderer.getDirections();
-
-    if (!directions || !onChange) return;
-
-    const { start_location, end_location } = directions.routes[0].legs[0];
-
-    onChange({
-      origin: {
-        lat: start_location.lat(),
-        lng: start_location.lng(),
-      },
-      destination: {
-        lat: end_location.lat(),
-        lng: end_location.lng(),
-      },
-    });
   });
 
   const { AdvancedMarkerElement } = await loader.importLibrary("marker");
@@ -149,7 +130,7 @@ export const initMap = async (el: HTMLElement) => {
       if (directionBounds) map.fitBounds(directionBounds);
 
       if (cords.destination && cords.origin) {
-        onFinish({
+        onFinish?.({
           origin: cords.origin,
           destination: cords.destination,
         });
