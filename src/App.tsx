@@ -24,12 +24,12 @@ function App() {
           const address = await getAddress(destination);
           if (address) setDestinationName(address);
         }
-      }, 1000);
+      }, 500);
     };
   };
 
   return (
-    <div className="h-screen w-screen grid grid-rows-[1fr,auto]">
+    <div className="h-svh w-svw grid grid-rows-[1fr,auto]">
       <Map onChange={createFinishHandler()} select={select} />
 
       {select === undefined ? (
