@@ -28,7 +28,6 @@ const Map: FC<Properties> = ({
   const setOnFinishRef = useRef<(fn: OnFinish) => void>();
   const [ready, setReady] = useState(false);
   const [dragging, setDragging] = useState(false);
-  useState<Record<"origin" | "destination", HTMLElement>>();
 
   useEffect(() => {
     if (!ref.current) return;
