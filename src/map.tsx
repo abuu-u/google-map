@@ -28,6 +28,7 @@ const Map: FC<Properties> = ({
   const setOnFinishRef = useRef<(fn: OnFinish) => void>();
   const [ready, setReady] = useState(false);
   const [dragging, setDragging] = useState(false);
+  useState<Record<"origin" | "destination", HTMLElement>>();
 
   useEffect(() => {
     if (!ref.current) return;
@@ -47,10 +48,10 @@ const Map: FC<Properties> = ({
         setSelectRef.current = select;
         setOnChangeRef.current = setOnChange;
         setOnFinishRef.current = setOnFinish;
-        setOnDragStart(() => setDragging(true));
-        setOnDragEnd(() => setDragging(false));
 
         setReady(true);
+        setOnDragStart(() => setDragging(true));
+        setOnDragEnd(() => setDragging(false));
       }
     );
   }, []);
@@ -79,30 +80,39 @@ const Map: FC<Properties> = ({
     setSelectRef.current?.(select);
   }, [ready, select]);
 
+  const svgClassName = `w-[36px] duration-500 ${
+    dragging ? "-translate-y-2.5" : ""
+  }`;
+
+  const svgs = {
+    origin: (
+      <svg className={svgClassName} viewBox="0 0 24 24">
+        <path
+          fill="#292D32"
+          d="M20.6 8.4c-1-4.6-5-6.7-8.6-6.7a8.6 8.6 0 0 0-8.6 6.7c-1.2 5.2 2 9.6 4.8 12.3a5.4 5.4 0 0 0 7.6 0c2.8-2.7 6-7 4.8-12.3Zm-8.6 5a3.1 3.1 0 1 1 0-6.2 3.1 3.1 0 0 1 0 6.3Z"
+        />
+      </svg>
+    ),
+    destination: (
+      <svg className={`translate-x-2 ${svgClassName}`} viewBox="0 0 24 24">
+        <path
+          fill="#292D32"
+          d="m15.2 7.2-8-3.5v-1c0-.4-.3-.7-.8-.7-.4 0-.7.3-.7.8v18.4c0 .5.3.8.7.8.5 0 .8-.3.8-.8v-4l8.2-4c1.7-.8 2.6-2 2.5-3.1 0-1.2-1-2.2-2.7-3Z"
+        />
+      </svg>
+    ),
+  };
+
   return (
     <div
       style={style}
       className={`relative w-full h-full grid place-items-center ${className}`}
     >
       {!!select && (
-        <svg
-          className={`w-[26px] duration-500 z-50 absolute -translate-y-1/2 ${
-            dragging ? "-mt-10" : ""
-          }`}
-          viewBox="0 0 26 37"
-        >
-          <g fill="none" fill-rule="evenodd" pointer-events="auto">
-            <path
-              fill="#C5221F"
-              d="M13 0A13 13 0 0 0 0 13c0 7.6 5.6 10.4 9.6 17 2.5 4.3 1.7 7 3.4 7s1-2.7 3.4-6.9C20.1 24 26 20.6 26 13A13 13 0 0 0 13 0Z"
-            />
-            <path
-              fill="#EA4335"
-              d="M13 35c-.2 0-.3 0-.7-1.3-.3-1-.8-2.6-2.1-4.6-1.3-2-2.6-3.5-3.9-5-3-3.6-5.3-6.4-5.3-11.5C1 6.2 6.4 1 13 1s12 5.2 12 11.6c0 5.1-2.3 8-5.3 11.5a40.9 40.9 0 0 0-3.8 5c-1.3 2-1.8 3.5-2.2 4.6-.4 1.2-.5 1.3-.7 1.3Z"
-            />
-            <path fill="#B31412" d="M13 18a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" />
-          </g>
-        </svg>
+        <div className="z-50 absolute -translate-y-1/2">
+          {svgs[select]}
+          <span className="w-5 h-3 absolute -bottom-0.5 left-1/2 -z-10 -translate-x-1/2 block bg-black/20 rounded-[50%]"></span>
+        </div>
       )}
 
       <div className="w-full h-full" ref={ref}></div>
