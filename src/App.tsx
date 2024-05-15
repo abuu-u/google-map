@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getAddress } from "./get-address";
 import { OnChange } from "./init-map";
 import Map from "./map";
@@ -7,14 +7,13 @@ function App() {
   const [select, setSelect] = useState<"origin" | "destination">();
   const [originName, setOriginName] = useState("");
   const [destinationName, setDestinationName] = useState("");
+  const timeout = useRef<number>();
 
   const createFinishHandler = () => {
-    let timeout: number;
-
     return async ({ origin, destination }: Parameters<OnChange>[0]) => {
-      clearTimeout(timeout);
+      clearTimeout(timeout.current);
 
-      timeout = setTimeout(async () => {
+      timeout.current = setTimeout(async () => {
         if (origin) {
           const address = await getAddress(origin);
           if (address) setOriginName(address);
@@ -24,9 +23,13 @@ function App() {
           const address = await getAddress(destination);
           if (address) setDestinationName(address);
         }
-      }, 500);
+      }, 100);
     };
   };
+
+  useEffect(() => {
+    return () => clearTimeout(timeout.current);
+  }, []);
 
   return (
     <div className="h-svh w-svw grid grid-rows-[1fr,auto]">

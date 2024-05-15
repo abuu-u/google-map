@@ -37,7 +37,9 @@ export const initMap = async (el: HTMLElement) => {
     destination?: google.maps.marker.AdvancedMarkerElement;
   } = {};
 
-  let moveListener: google.maps.MapsEventListener;
+  let centerChangedListener: google.maps.MapsEventListener;
+  let dragListener: google.maps.MapsEventListener;
+  let dragEndListener: google.maps.MapsEventListener;
 
   let directionBounds: google.maps.LatLngBounds | undefined;
 
@@ -49,6 +51,16 @@ export const initMap = async (el: HTMLElement) => {
   let onFinish: OnFinish;
   const setOnFinish = (fn: OnFinish) => {
     onFinish = fn;
+  };
+
+  let onDragStart: () => void;
+  const setOnDragStart = (fn: () => void) => {
+    onDragStart = fn;
+  };
+
+  let onDragEnd: () => void;
+  const setOnDragEnd = (fn: () => void) => {
+    onDragEnd = fn;
   };
 
   const { Map } = await loader.importLibrary("maps");
@@ -103,13 +115,8 @@ export const initMap = async (el: HTMLElement) => {
     drawDirection();
   };
 
-  const setMarker = (type: "origin" | "destination") => {
-    const position = {
-      lat: map.getCenter()?.lat() ?? 0,
-      lng: map.getCenter()?.lng() ?? 0,
-    };
-
-    if (marker[type]) {
+  const setMarker = (type: "origin" | "destination", position: Position) => {
+    if (marker[type]?.map) {
       marker[type]!.position = position;
     } else {
       marker[type] = new AdvancedMarkerElement({
@@ -117,15 +124,13 @@ export const initMap = async (el: HTMLElement) => {
         map,
       });
     }
-
-    if (type === "origin") {
-      setOrigin(position);
-    } else if (type === "destination") {
-      setDestination(position);
-    }
   };
 
   const select = (type?: "origin" | "destination") => {
+    centerChangedListener?.remove();
+    dragListener?.remove();
+    dragEndListener?.remove();
+
     if (!type) {
       if (directionBounds) map.fitBounds(directionBounds);
 
@@ -136,32 +141,51 @@ export const initMap = async (el: HTMLElement) => {
         });
       }
 
-      moveListener?.remove();
+      if (cords.origin) setMarker("origin", cords.origin);
+      if (cords.destination) setMarker("destination", cords.destination);
 
       return;
     }
 
-    const mapCenter = map.getCenter();
+    const currMarker = marker[type];
+
+    if (currMarker !== undefined) {
+      currMarker.map = null;
+    }
+
+    const getMapCenter = () => ({
+      lat: map.getCenter()?.lat() ?? 0,
+      lng: map.getCenter()?.lng() ?? 0,
+    });
+    const mapCenter = getMapCenter();
     const latMarker = marker[type]?.position?.lat;
     const lngMarker = marker[type]?.position?.lng;
     const lat =
       typeof latMarker === "function"
         ? latMarker()
-        : latMarker ?? mapCenter?.lat() ?? 0;
+        : latMarker ?? mapCenter.lat;
     const lng =
       typeof lngMarker === "function"
         ? lngMarker()
-        : lngMarker ?? mapCenter?.lng() ?? 0;
+        : lngMarker ?? mapCenter.lng;
 
     map.setCenter({ lat, lng });
 
-    setMarker(type);
+    dragListener = map.addListener("dragstart", () => {
+      onDragStart?.();
+    });
 
-    const handleMove = () => {
-      setMarker(type);
-    };
+    dragEndListener = map.addListener("dragend", () => {
+      onDragEnd?.();
+    });
 
-    moveListener = map.addListener("drag", handleMove);
+    centerChangedListener = map.addListener("center_changed", () => {
+      if (!type) return;
+
+      type === "origin"
+        ? setOrigin(getMapCenter())
+        : setDestination(getMapCenter());
+    });
   };
 
   return {
@@ -170,5 +194,7 @@ export const initMap = async (el: HTMLElement) => {
     select,
     setOnChange,
     setOnFinish,
+    setOnDragStart,
+    setOnDragEnd,
   };
 };

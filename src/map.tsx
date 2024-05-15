@@ -27,17 +27,28 @@ const Map: FC<Properties> = ({
   const setOnChangeRef = useRef<(fn: OnChange) => void>();
   const setOnFinishRef = useRef<(fn: OnFinish) => void>();
   const [ready, setReady] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
     if (!ref.current) return;
 
     initMap(ref.current).then(
-      ({ setOrigin, setDestination, select, setOnChange, setOnFinish }) => {
+      ({
+        setOrigin,
+        setDestination,
+        select,
+        setOnChange,
+        setOnFinish,
+        setOnDragStart,
+        setOnDragEnd,
+      }) => {
         setOriginRef.current = setOrigin;
         setDestinationRef.current = setDestination;
         setSelectRef.current = select;
         setOnChangeRef.current = setOnChange;
         setOnFinishRef.current = setOnFinish;
+        setOnDragStart(() => setDragging(true));
+        setOnDragEnd(() => setDragging(false));
 
         setReady(true);
       }
@@ -68,7 +79,28 @@ const Map: FC<Properties> = ({
     setSelectRef.current?.(select);
   }, [ready, select]);
 
-  return <div style={style} className={className} ref={ref}></div>;
+  return (
+    <div
+      style={style}
+      className={`relative w-full h-full grid place-items-center ${className}`}
+    >
+      {!!select && (
+        <svg
+          className={`w-12 duration-500 z-50 absolute -translate-y-1/2 ${
+            dragging ? "-mt-10" : ""
+          }`}
+          viewBox="0 0 1024 1024"
+        >
+          <path
+            fill="#FF3D00"
+            d="M512 85a299 299 0 0 0-299 299c0 165 299 555 299 555s299-390 299-555S677 85 512 85zm0 448a149 149 0 1 1 0-298 149 149 0 0 1 0 298z"
+          />
+        </svg>
+      )}
+
+      <div className="w-full h-full" ref={ref}></div>
+    </div>
+  );
 };
 
 export default Map;
