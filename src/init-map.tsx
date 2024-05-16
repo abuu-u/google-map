@@ -70,6 +70,7 @@ export const initMap = async (el: HTMLElement) => {
     zoom: 12,
     mapId: "DEMO_MAP_ID",
     streetViewControl: false,
+    maxZoom: 15,
   });
 
   const { DirectionsRenderer, DirectionsService } = await loader.importLibrary(
@@ -141,8 +142,6 @@ export const initMap = async (el: HTMLElement) => {
         map,
         content: svgs[type],
       });
-
-      console.log(marker[type]);
     }
   };
 
@@ -189,7 +188,11 @@ export const initMap = async (el: HTMLElement) => {
         ? lngMarker()
         : lngMarker ?? mapCenter.lng;
 
-    map.setCenter({ lat, lng });
+    const position = { lat, lng };
+
+    map.setCenter(position);
+
+    type === "origin" ? setOrigin(position) : setDestination(position);
 
     dragListener = map.addListener("dragstart", () => {
       onDragStart?.();
